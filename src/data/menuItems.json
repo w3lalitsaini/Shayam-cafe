@@ -1,0 +1,123 @@
+[
+  {
+    "id": 1,
+    "title": "Espresso",
+    "description": "Rich, bold single shot. No milk, pure coffee flavour.",
+    "price": 120,
+    "category": "Coffee",
+    "tag": "Hot",
+    "badge": "Classic",
+    "isAvailable": true,
+    "image": "/images/menu/espresso.jpg"
+  },
+  {
+    "id": 2,
+    "title": "Cappuccino",
+    "description": "Espresso with steamed milk and froth, perfectly balanced.",
+    "price": 160,
+    "category": "Coffee",
+    "tag": "Hot",
+    "badge": "Popular",
+    "isAvailable": true,
+    "image": "/images/menu/cappuccino.jpg"
+  },
+  {
+    "id": 3,
+    "title": "Caramel Latte",
+    "description": "Smooth latte with caramel syrup and microfoam.",
+    "price": 190,
+    "category": "Coffee",
+    "tag": "Hot",
+    "badge": "Best Seller",
+    "isAvailable": true,
+    "image": "/images/menu/caramel-latte.jpg"
+  },
+  {
+    "id": 4,
+    "title": "Classic Cold Coffee",
+    "description": "Blended coffee with milk, sugar & ice cream.",
+    "price": 180,
+    "category": "Cold Coffee",
+    "tag": "Cold",
+    "badge": "Summer Fav",
+    "isAvailable": true,
+    "image": "/images/menu/cold-coffee.jpg"
+  },
+  {
+    "id": 5,
+    "title": "Mocha Frappe",
+    "description": "Cold coffee with chocolate, whipped cream on top.",
+    "price": 210,
+    "category": "Cold Coffee",
+    "tag": "Cold",
+    "badge": "New",
+    "isAvailable": true,
+    "image": "/images/menu/mocha-frappe.jpg"
+  },
+  {
+    "id": 6,
+    "title": "Masala Chai",
+    "description": "Indian spiced tea brewed with milk & aromatic spices.",
+    "price": 90,
+    "category": "Tea",
+    "tag": "Hot",
+    "badge": "Desi Special",
+    "isAvailable": true,
+    "image": "/images/menu/masala-chai.jpg"
+  },
+  {
+    "id": 7,
+    "title": "Lemon Ginger Tea",
+    "description": "Refreshing lemon tea with a hint of ginger.",
+    "price": 110,
+    "category": "Tea",
+    "tag": "Hot",
+    "badge": "",
+    "isAvailable": true,
+    "image": "/images/menu/lemon-ginger-tea.jpg"
+  },
+  {
+    "id": 8,
+    "title": "Grilled Veg Sandwich",
+    "description": "Stuffed with veggies, cheese & house special sauce.",
+    "price": 160,
+    "category": "Snacks",
+    "tag": "Veg",
+    "badge": "",
+    "isAvailable": true,
+    "image": "/images/menu/veg-sandwich.jpg"
+  },
+  {
+    "id": 9,
+    "title": "Peri Peri Fries",
+    "description": "Crispy fries tossed in spicy peri peri seasoning.",
+    "price": 140,
+    "category": "Snacks",
+    "tag": "Veg",
+    "badge": "",
+    "isAvailable": true,
+    "image": "/images/menu/peri-peri-fries.jpg"
+  },
+  {
+    "id": 10,
+    "title": "Chocolate Brownie",
+    "description": "Warm gooey brownie, best with a cappuccino.",
+    "price": 150,
+    "category": "Desserts",
+    "tag": "Eggless",
+    "badge": "Hot + Ice Cream",
+    "isAvailable": true,
+    "image": "/images/menu/brownie.jpg"
+  },
+  {
+    "id": 11,
+    "title": "Cheesecake Slice",
+    "description": "Creamy baked cheesecake with biscuit base.",
+    "price": 190,
+    "category": "Desserts",
+    "tag": "",
+    "badge": "",
+    "isAvailable": false,
+    "image": "/images/menu/cheesecake.jpg"
+  }
+]
