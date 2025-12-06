@@ -1,22 +1,59 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const ForgetPassword = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+    setInfoMsg("");
 
     if (!email) {
-      window.alert("Please enter your email.");
+      setErrorMsg("Please enter your email.");
       return;
     }
 
-    // Demo only
-    window.alert(
-      `Password reset link (demo) sent to:\n\n${email}\n\nIn a real app, this would send an email with a reset URL.`
-    );
-    setEmail("");
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to send reset link");
+      }
+
+      setInfoMsg(
+        data.message ||
+          "If that email exists, a password reset link has been sent."
+      );
+
+      // For dev: show reset URL in console if backend sends it
+      if (data.dev_reset_url) {
+        console.log("DEV reset URL:", data.dev_reset_url);
+      }
+      if (data.dev_reset_token) {
+        console.log("DEV reset token:", data.dev_reset_token);
+      }
+
+      setEmail("");
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      setErrorMsg(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -29,9 +66,21 @@ const ForgetPassword = () => {
           <h1 className="text-lg font-semibold">Forgot password?</h1>
           <p className="mt-1 text-xs text-slate-400">
             Enter your registered email address and we&apos;ll send you a reset
-            link (demo).
+            link.
           </p>
         </div>
+
+        {errorMsg && (
+          <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
+          </div>
+        )}
+
+        {infoMsg && (
+          <div className="mb-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100">
+            {infoMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs sm:text-sm">
           <div>
@@ -47,9 +96,10 @@ const ForgetPassword = () => {
 
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition"
+            disabled={loading}
+            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Send reset link (Demo)
+            {loading ? "Sending..." : "Send reset link"}
           </button>
         </form>
 

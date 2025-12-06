@@ -1,3 +1,4 @@
+// src/layout/Footer.jsx
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
 
@@ -6,17 +7,16 @@ const Footer = () => {
     { label: "Home", to: "/" },
     { label: "Menu", to: "/menu" },
     { label: "Order", to: "/order" },
-    { label: "Reservations", to: "/reservations" },
     { label: "About", to: "/about" },
     { label: "Contact", to: "/contact" },
   ];
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-950/95 text-slate-300">
+    <footer className="border-top border-slate-800 bg-slate-950/95 text-slate-300">
       <div className="mx-auto max-w-6xl px-4 py-8 md:py-10">
         {/* Top section */}
         <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
-          {/* Brand */}
+          {/* Brand / short intro */}
           <div className="max-w-xs">
             <Link to="/" className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full border border-amber-400/50 bg-amber-500/10">
@@ -24,25 +24,25 @@ const Footer = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold tracking-tight text-slate-50">
-                  Brew Haven Café
+                  Shree Shayam Cafe
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  Crafted sips, cozy vibes.
+                  Near CLC, Sikar, Rajasthan.
                 </span>
               </div>
             </Link>
 
             <p className="mt-4 text-xs text-slate-400">
-              Specialty coffee, fresh bakes, and a calm corner to work or chill.
-              Order online or reserve your favorite spot in advance.
+              A friendly café near CLC, Sikar serving chai, coffee, snacks and
+              simple meals — perfect for students, friends and families.
             </p>
 
             <p className="mt-3 text-[11px] text-slate-500">
-              MG Road, Jaipur, Rajasthan · Open 8:00 AM – 11:00 PM
+              Open daily · 8:00 AM – 11:00 PM
             </p>
           </div>
 
-          {/* Navigation */}
+          {/* Columns: Quick Links / Visit / Contact */}
           <div className="flex flex-1 flex-wrap gap-8 text-sm md:justify-end">
             {/* Quick links */}
             <div>
@@ -62,62 +62,74 @@ const Footer = () => {
               </div>
             </div>
 
-            {/* Contact */}
+            {/* Visit section */}
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Contact
+                Visit Shree Shayam Cafe
               </h4>
-              <div className="mt-3 space-y-1 text-xs text-slate-400">
-                <p>Phone: +91-98765-43210</p>
-                <p>Email: hello@brewhaven.cafe</p>
-                <p>Instagram: @brewhaven.cafe</p>
-              </div>
-
-              {/* Social icons (placeholder) */}
-              <div className="mt-3 flex gap-3">
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
-                >
-                  in
-                </button>
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
-                >
-                  IG
-                </button>
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
-                >
-                  X
-                </button>
+              <div className="mt-3 space-y-2 text-xs text-slate-400">
+                <div>
+                  <p className="font-medium text-slate-200">Address</p>
+                  <p className="mt-1">
+                    Near CLC Institute
+                    <br />
+                    Sikar, Rajasthan, India
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-slate-200">Timings</p>
+                  <p className="mt-1">
+                    Monday – Sunday
+                    <br />
+                    8:00 AM – 11:00 PM
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Newsletter / CTA */}
-            <div className="max-w-xs">
+            {/* Contact & social */}
+            <div>
               <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Stay in the loop
+                Contact & Social
               </h4>
-              <p className="mt-3 text-xs text-slate-400">
-                Get updates on new brews, seasonal specials, and café events.
-              </p>
+              <div className="mt-3 space-y-2 text-xs text-slate-400">
+                <div>
+                  <p className="font-medium text-slate-200">Contact</p>
+                  <p className="mt-1">
+                    Phone:{" "}
+                    <span className="text-slate-200">+91-98873-74746</span>
+                    <br />
+                    Email:{" "}
+                    <span className="text-slate-200">
+                      sainilalit275@gmail.com
+                    </span>
+                  </p>
+                </div>
 
-              <form className="mt-3 space-y-2 text-xs">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="w-full rounded-full border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-amber-400"
-                />
-                <button
-                  type="button"
-                  className="w-full rounded-full bg-amber-400 px-4 py-2 text-[11px] font-semibold text-slate-950 hover:bg-amber-300 transition"
-                >
-                  Subscribe
-                </button>
-              </form>
+                <div>
+                  <p className="font-medium text-slate-200">Social (demo)</p>
+                  <div className="mt-2 flex gap-3">
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
+                    >
+                      IG
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
+                    >
+                      YT
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 text-[13px] text-slate-300 hover:border-amber-400 hover:text-amber-300 transition"
+                    >
+                      WA
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -125,7 +137,8 @@ const Footer = () => {
         {/* Bottom section */}
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-4 text-[11px] text-slate-500 md:flex-row">
           <p>
-            © {new Date().getFullYear()} Brew Haven Café. All rights reserved.
+            © {new Date().getFullYear()} Shree Shayam Cafe, Sikar. All rights
+            reserved.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <span>Made with ❤️ using MERN.</span>
@@ -134,7 +147,7 @@ const Footer = () => {
               Privacy Policy
             </button>
             <button className="text-slate-500 hover:text-amber-300 transition">
-              Terms
+              Terms & Conditions
             </button>
           </div>
         </div>

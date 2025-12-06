@@ -1,98 +1,118 @@
-import React, { useState, useMemo } from "react";
-import menuItems from "../data/menuItems.json";
+import React, { useEffect, useState } from "react";
+import { useCart } from "../context/CartContext";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Order = () => {
-  // Build categories dynamically from JSON
-  const dynamicCategories = Array.from(
-    new Set(menuItems.map((item) => item.category))
-  );
-  const categories = ["All", ...dynamicCategories];
+  const {
+    items: cartItems,
+    updateQty,
+    removeItem,
+    clearCart,
+    totals,
+  } = useCart();
 
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [cart, setCart] = useState({});
-  const [orderType, setOrderType] = useState("Takeaway"); // Takeaway / Dine-in
+  const [orderType, setOrderType] = useState("Takeaway");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState(""); // address
   const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
-  const filteredItems =
-    activeCategory === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === activeCategory);
+  const { subtotal, tax, total } = totals;
 
-  const handleAddToCart = (item) => {
-    setCart((prev) => {
-      const currentQty = prev[item.id] || 0;
-      return {
-        ...prev,
-        [item.id]: currentQty + 1,
-      };
-    });
-  };
-
-  const handleQtyChange = (id, delta) => {
-    setCart((prev) => {
-      const currentQty = prev[id] || 0;
-      const nextQty = currentQty + delta;
-
-      if (nextQty <= 0) {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      }
-
-      return {
-        ...prev,
-        [id]: nextQty,
-      };
-    });
-  };
-
-  const cartItems = useMemo(
-    () =>
-      menuItems
-        .filter((item) => cart[item.id])
-        .map((item) => ({
-          ...item,
-          qty: cart[item.id],
-          lineTotal: item.price * cart[item.id],
-        })),
-    [cart]
-  );
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  const tax = Math.round(subtotal * 0.05); // 5% demo tax
-  const total = subtotal + tax;
+  // Basic SEO
+  useEffect(() => {
+    document.title =
+      "Order Online | Shree Shayam Cafe – Near CLC, Sikar, Rajasthan";
+  }, []);
 
   const formatCurrency = (value) =>
     `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
 
-    if (cartItems.length === 0) {
-      window.alert("Please add at least one item to your order.");
+    if (!cartItems.length) {
+      setErrorMsg("Please add at least one item to your order.");
       return;
     }
 
     if (!customerName || !customerPhone) {
-      window.alert("Please fill your name and phone number.");
+      setErrorMsg("Please fill your name and phone number.");
       return;
     }
 
-    // For now, just show an alert.
-    window.alert(
-      `Order placed!\n\nName: ${customerName}\nPhone: ${customerPhone}\nType: ${orderType}\nItems: ${
-        cartItems.length
-      }\nTotal: ${formatCurrency(total)}`
-    );
+    if (!customerAddress.trim()) {
+      setErrorMsg("Please enter your address (or hostel/room details).");
+      return;
+    }
 
-    // Reset state
-    setCart({});
-    setCustomerName("");
-    setCustomerPhone("");
-    setNote("");
-    setOrderType("Takeaway");
+    try {
+      setLoading(true);
+
+      // If user is logged in, send userId
+      let userId = null;
+      try {
+        const storedUser = localStorage.getItem("bh_user");
+        if (storedUser) {
+          const u = JSON.parse(storedUser);
+          userId = u.id || u._id || null;
+        }
+      } catch {
+        /* ignore */
+      }
+
+      const payload = {
+        userId,
+        items: cartItems.map((item) => ({
+          menuItem: item.id, // Mongo ObjectId string
+          title: item.title,
+          quantity: item.qty,
+          price: item.price,
+        })),
+        totalAmount: total,
+        notes: note,
+        source: orderType === "Dine-in" ? "In-store" : "Online",
+        customerName,
+        customerPhone,
+        customerAddress,
+      };
+
+      const res = await fetch(`${API_BASE}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to place order");
+      }
+
+      // success
+      clearCart();
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setNote("");
+      setOrderType("Takeaway");
+      setSuccessMsg(
+        "Order placed successfully! Shree Shayam Cafe has received your order."
+      );
+    } catch (err) {
+      console.error("Place order error:", err);
+      setErrorMsg(err.message || "Something went wrong, please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,15 +122,14 @@ const Order = () => {
         <div className="flex flex-col gap-4 border-b border-slate-800 pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-amber-300">
-              Order Online
+              Shree Shayam Cafe · Order Online
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Freshly brewed, ready when you are.
+              Fresh food & chai, ready when you are.
             </h1>
             <p className="mt-2 max-w-xl text-sm text-slate-400">
-              Choose your favourite drinks and snacks, and place an order for
-              takeaway or dine-in. No login or payment needed yet – this is a
-              demo flow.
+              Review your cart and confirm your order for takeaway or dine-in at
+              Shree Shayam Cafe, near CLC, Sikar.
             </p>
           </div>
 
@@ -141,151 +160,58 @@ const Order = () => {
           </div>
         </div>
 
-        {/* Layout: menu left, cart right */}
-        <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-          {/* Left side: items */}
-          <div>
-            {/* Category pills */}
-            <div className="mb-4 flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`rounded-full border px-3 py-1.5 text-xs md:text-sm transition ${
-                    activeCategory === cat
-                      ? "border-amber-400 bg-amber-400/10 text-amber-300"
-                      : "border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400/60 hover:text-amber-200"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            {/* Items grid: 2–3 per row like Flipkart */}
-            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex flex-col overflow-hidden rounded-2xl border bg-slate-900/80 shadow-sm ${
-                      item.isAvailable
-                        ? "border-slate-800"
-                        : "border-slate-900 opacity-80"
-                    }`}
-                  >
-                    {/* Image */}
-                    <div className="relative h-28 w-full overflow-hidden sm:h-32">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                      {!item.isAvailable && (
-                        <span className="absolute right-2 top-2 rounded-full bg-slate-900/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300">
-                          Sold Out
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex flex-1 flex-col justify-between p-3">
-                      <div>
-                        <div className="mb-1 flex items-start justify-between gap-2">
-                          <h4 className="text-xs font-semibold text-slate-50 sm:text-sm">
-                            {item.title}
-                          </h4>
-                          {item.tag && (
-                            <span className="rounded-full bg-slate-800 px-2 py-1 text-[9px] text-slate-300">
-                              {item.tag}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-2">
-                          {item.description}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between">
-                        <p className="text-xs font-semibold text-amber-300 sm:text-sm">
-                          {formatCurrency(item.price)}
-                        </p>
-                        {cart[item.id] ? (
-                          <div className="flex items-center gap-2 rounded-full bg-slate-800 px-2 py-1">
-                            <button
-                              type="button"
-                              onClick={() => handleQtyChange(item.id, -1)}
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-xs text-slate-200 hover:bg-slate-700"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-medium">
-                              {cart[item.id]}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleQtyChange(item.id, 1)}
-                              className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-xs font-semibold text-slate-950 hover:bg-amber-300"
-                            >
-                              +
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={!item.isAvailable}
-                            onClick={() => handleAddToCart(item)}
-                            className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
-                              item.isAvailable
-                                ? "bg-slate-800 text-slate-100 hover:bg-amber-400 hover:text-slate-950"
-                                : "cursor-not-allowed bg-slate-800/60 text-slate-500"
-                            }`}
-                          >
-                            {item.isAvailable ? "Add" : "Not Available"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400">
-                  No items available in this category right now.
-                </p>
-              )}
-            </div>
+        {/* Error / success */}
+        {errorMsg && (
+          <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
           </div>
+        )}
+        {successMsg && (
+          <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100">
+            {successMsg}
+          </div>
+        )}
 
-          {/* Right side: Cart & checkout */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+        {/* Layout: cart + checkout */}
+        <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)]">
+          {/* Cart items */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             <h2 className="text-sm font-semibold text-slate-50 sm:text-base">
-              Your Order
+              Your Cart
             </h2>
 
-            {/* Cart items */}
-            <div className="space-y-3 border-b border-slate-800 pb-3 max-h-64 overflow-y-auto custom-scroll">
+            <div className="mt-3 space-y-3 max-h-80 overflow-y-auto">
               {cartItems.length === 0 ? (
-                <p className="text-xs text-slate-500">
-                  Your cart is empty. Add some items from the menu.
+                <p className="text-[11px] text-slate-500">
+                  Your cart is empty. Go to the menu and add some items.
                 </p>
               ) : (
                 cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-2 text-xs"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-xs"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-100">{item.title}</p>
-                      <p className="text-[11px] text-slate-400">
-                        {formatCurrency(item.price)} × {item.qty}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="h-10 w-10 rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="font-medium text-slate-100">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {formatCurrency(item.price)} each
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1 rounded-full bg-slate-800 px-2 py-1">
                         <button
                           type="button"
-                          onClick={() => handleQtyChange(item.id, -1)}
+                          onClick={() => updateQty(item.id, item.qty - 1)}
                           className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] text-slate-200 hover:bg-slate-700"
                         >
                           -
@@ -295,21 +221,33 @@ const Order = () => {
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleQtyChange(item.id, 1)}
+                          onClick={() => updateQty(item.id, item.qty + 1)}
                           className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[11px] font-semibold text-slate-950 hover:bg-amber-300"
                         >
                           +
                         </button>
                       </div>
-                      <p className="text-xs font-semibold text-amber-300">
-                        {formatCurrency(item.lineTotal)}
-                      </p>
+                      <div className="text-right">
+                        <p className="text-[11px] font-semibold text-amber-300">
+                          {formatCurrency(item.price * item.qty)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="mt-1 text-[10px] text-slate-500 hover:text-rose-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
+          </div>
 
+          {/* Checkout form + totals */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
             {/* Totals */}
             <div className="space-y-1 text-xs text-slate-300">
               <div className="flex justify-between">
@@ -326,7 +264,7 @@ const Order = () => {
               </div>
             </div>
 
-            {/* Checkout form */}
+            {/* Form */}
             <form onSubmit={handleSubmit} className="mt-2 space-y-3 text-xs">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
@@ -353,6 +291,20 @@ const Order = () => {
                 </div>
               </div>
 
+              {/* Address */}
+              <div>
+                <label className="mb-1 block text-slate-300">
+                  Delivery / contact address
+                </label>
+                <textarea
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="Hostel / room no, street, area, landmark near CLC, Sikar"
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs outline-none placeholder:text-slate-500 focus:border-amber-400"
+                />
+              </div>
+
               <div>
                 <label className="mb-1 block text-slate-300">
                   Special instructions (optional)
@@ -360,7 +312,7 @@ const Order = () => {
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="E.g. less sugar, extra hot, no onions, etc."
+                  placeholder="E.g. less sugar, extra hot, ring after reaching gate, etc."
                   rows={3}
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs outline-none placeholder:text-slate-500 focus:border-amber-400"
                 />
@@ -368,16 +320,18 @@ const Order = () => {
 
               <button
                 type="submit"
+                disabled={loading || cartItems.length === 0}
                 className="mt-1 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs font-semibold text-slate-950 hover:bg-amber-300 transition disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={cartItems.length === 0}
               >
-                Place Order (Demo)
+                {loading ? "Placing order..." : "Place Order"}
               </button>
 
               <p className="text-[11px] text-slate-500">
-                This is a frontend-only demo. Later, you can connect this to
-                your Express + MongoDB backend and integrate Razorpay/Stripe for
-                payments.
+                Your order will be created in the system and visible on the
+                Shree Shayam Cafe admin dashboard. A notification email is sent
+                to{" "}
+                <span className="text-amber-300">sainilalit275@gmail.com</span>{" "}
+                for every new order.
               </p>
             </form>
           </div>

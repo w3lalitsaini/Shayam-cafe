@@ -1,40 +1,79 @@
-import React, { useState } from "react";
+// src/pages/Contact.jsx
+import React, { useState, useEffect } from "react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Contact = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    phone: "",
     subject: "",
     message: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  useEffect(() => {
+    document.title =
+      "Contact Shree Shayam Cafe | Cafe Near CLC Sikar, Rajasthan";
+  }, []);
 
   const handleChange = (e) => {
     setForm((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
+    setErrorMsg("");
+    setSuccessMsg("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setErrorMsg("");
+    setSuccessMsg("");
+
     if (!form.name || !form.email || !form.message) {
-      window.alert("Please fill your name, email and message.");
+      setErrorMsg("Please fill your name, email and message.");
       return;
     }
 
-    window.alert(
-      `Message sent (demo only)!\n\nName: ${form.name}\nEmail: ${
-        form.email
-      }\nSubject: ${form.subject || "-"}`
-    );
+    try {
+      setLoading(true);
 
-    setForm({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+      const res = await fetch(`${API_BASE}/contact`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to send your message.");
+      }
+
+      setSuccessMsg(
+        "Thank you for reaching out! Your message has been sent successfully."
+      );
+
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        subject: "",
+        message: "",
+      });
+    } catch (err) {
+      console.error("Contact form error:", err);
+      setErrorMsg(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,11 +88,24 @@ const Contact = () => {
             Let&apos;s stay in touch.
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            Have a question about our menu, reservations, or want to host a
-            small event at Brew Haven Café? Drop us a message or reach out
-            directly using the details below.
+            Have a question about our menu, bulk orders, or want to plan a small
+            get-together at{" "}
+            <span className="text-amber-300">Shree Shayam Cafe</span> near CLC,
+            Sikar? Send us a message and we&apos;ll get back to you.
           </p>
         </header>
+
+        {/* Alerts */}
+        {errorMsg && (
+          <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div className="mt-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100">
+            {successMsg}
+          </div>
+        )}
 
         {/* Main layout */}
         <section className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)]">
@@ -63,7 +115,7 @@ const Contact = () => {
               Send us a message
             </h2>
             <p className="mt-1 text-xs text-slate-400">
-              We usually respond within a few hours during café working time.
+              We usually respond within a few hours during cafe timings.
             </p>
 
             <form
@@ -99,6 +151,21 @@ const Contact = () => {
                 </div>
               </div>
 
+              {/* Phone (optional but useful) */}
+              <div>
+                <label className="mb-1 block text-slate-300">
+                  Phone (optional)
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="Your contact number"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs sm:text-sm outline-none placeholder:text-slate-500 focus:border-amber-400"
+                />
+              </div>
+
               <div>
                 <label className="mb-1 block text-slate-300">Subject</label>
                 <input
@@ -106,7 +173,7 @@ const Contact = () => {
                   name="subject"
                   value={form.subject}
                   onChange={handleChange}
-                  placeholder="Reservation, menu, feedback, collaboration..."
+                  placeholder="Feedback, order enquiry, collaboration..."
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs sm:text-sm outline-none placeholder:text-slate-500 focus:border-amber-400"
                 />
               </div>
@@ -127,15 +194,15 @@ const Contact = () => {
 
               <button
                 type="submit"
-                className="mt-1 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition"
+                disabled={loading}
+                className="mt-1 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send Message (Demo)
+                {loading ? "Sending..." : "Send Message"}
               </button>
 
               <p className="text-[11px] text-slate-500">
-                This form is currently frontend-only. Later you can send this
-                data to your Express backend (e.g. via an API route) and email
-                it to yourself or store it in MongoDB.
+                Your message will be stored securely and forwarded to the cafe
+                owner&apos;s email.
               </p>
             </form>
           </div>
@@ -154,11 +221,9 @@ const Contact = () => {
                     Address
                   </p>
                   <p className="mt-1 text-slate-300">
-                    Brew Haven Café
+                    Shree Shayam Cafe
                     <br />
-                    MG Road, Jaipur, Rajasthan
-                    <br />
-                    (demo address – replace with real one)
+                    Near CLC, Sikar, Rajasthan
                   </p>
                 </div>
 
@@ -167,11 +232,9 @@ const Contact = () => {
                     Contact
                   </p>
                   <p className="mt-1 text-slate-300">
-                    Phone: +91-98765-43210
+                    Phone: 9887374746
                     <br />
-                    Email: hello@brewhaven.cafe
-                    <br />
-                    Instagram: @brewhaven.cafe
+                    Email: sainilalit275@gmail.com
                   </p>
                 </div>
 
@@ -183,8 +246,8 @@ const Contact = () => {
                     Monday – Sunday: 8:00 AM – 11:00 PM
                   </p>
                   <p className="mt-1 text-[11px] text-slate-400">
-                    Best time for work/study: 9:00 AM – 1:00 PM and 4:00 PM –
-                    7:00 PM.
+                    Popular student hours: before and after coaching batches at
+                    CLC.
                   </p>
                 </div>
               </div>
@@ -196,10 +259,11 @@ const Contact = () => {
                 Find us on the map
               </h2>
               <p className="mt-1 text-[11px] text-slate-400">
-                You can embed a live Google Map here using an iframe when
-                you&apos;re ready.
+                You can embed a live Google Map for &quot;Shree Shayam Cafe,
+                Near CLC, Sikar&quot; here using an iframe when you&apos;re
+                ready.
               </p>
-              <div className="mt-3 h-44 w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900 text-[11px] text-slate-500 flex items-center justify-center">
+              <div className="mt-3 flex h-44 w-full items-center justify-center overflow-hidden rounded-xl border border-slate-800 bg-slate-900 text-[11px] text-slate-500">
                 Map placeholder
                 <br />
                 (Google Maps iframe goes here later)
@@ -214,32 +278,33 @@ const Contact = () => {
               <div className="mt-3 space-y-3 text-[11px] text-slate-300">
                 <div>
                   <p className="font-semibold text-slate-100">
-                    Do you offer Wi-Fi and charging points?
+                    Is Shree Shayam Cafe student-friendly?
                   </p>
                   <p className="mt-1 text-slate-400">
-                    Yes, we have free Wi-Fi and multiple charging points around
-                    the café. Just ask our staff if you need help finding a plug
-                    point.
+                    Yes, most of our guests are students from CLC and nearby
+                    institutes. We keep pricing, seating and ambience friendly
+                    for long study sessions.
                   </p>
                 </div>
                 <div>
                   <p className="font-semibold text-slate-100">
-                    Can I host a small meetup or event?
+                    Can I host a small meetup or group study?
                   </p>
                   <p className="mt-1 text-slate-400">
-                    Definitely! For small meetups (5–20 people), contact us at{" "}
-                    <span className="text-amber-300">hello@brewhaven.cafe</span>{" "}
-                    with your date, time, and rough headcount.
+                    Definitely! For small groups, just call{" "}
+                    <span className="text-amber-300">9887374746</span> or send a
+                    message through this form with preferred time and number of
+                    people.
                   </p>
                 </div>
                 <div>
                   <p className="font-semibold text-slate-100">
-                    Do you take bulk orders?
+                    Do you take bulk tea/snacks orders?
                   </p>
                   <p className="mt-1 text-slate-400">
-                    Yes, we handle bulk orders for offices and events. Share
-                    your requirements through the form and we&apos;ll get back
-                    with options and pricing.
+                    Yes, we handle bulk orders for batches, coaching events and
+                    small functions. Share your requirement via the form and
+                    we&apos;ll confirm pricing and timing.
                   </p>
                 </div>
               </div>

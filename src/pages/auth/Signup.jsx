@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const Signup = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -10,6 +12,8 @@ const Signup = () => {
     password: "",
     confirmPassword: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -18,31 +22,66 @@ const Signup = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
 
     const { name, email, phone, password, confirmPassword } = form;
 
+    // basic validations
     if (!name || !email || !phone || !password || !confirmPassword) {
-      window.alert("Please fill all fields (name, email, mobile, password).");
+      setErrorMsg("Please fill all fields (name, email, mobile, password).");
       return;
     }
 
     if (password !== confirmPassword) {
-      window.alert("Passwords do not match.");
+      setErrorMsg("Passwords do not match.");
       return;
     }
 
     if (!/^\d{10}$/.test(phone)) {
-      window.alert("Please enter a valid 10-digit mobile number.");
+      setErrorMsg("Please enter a valid 10-digit mobile number.");
       return;
     }
 
-    // Demo only
-    window.alert(
-      `Signup (demo)\n\nName: ${name}\nEmail: ${email}\nMobile: ${phone}`
-    );
-    navigate("/auth/verify-email");
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, phone, password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
+
+      // For dev: see OTP in console (from dev_otp field)
+      if (data.dev_otp) {
+        console.log("DEV OTP (for testing):", data.dev_otp);
+      }
+
+      // Store email so VerifyEmail page knows which email to verify
+      localStorage.setItem(
+        "bh_signup_email",
+        JSON.stringify({ email: data.user?.email || email })
+      );
+
+      // Optionally, you can show a toast / alert
+      // window.alert("Signup successful! Please verify your email.");
+
+      navigate("/auth/verify-email");
+    } catch (err) {
+      console.error("Signup error:", err);
+      setErrorMsg(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +96,12 @@ const Signup = () => {
             Sign up to manage orders, reservations, and more.
           </p>
         </div>
+
+        {errorMsg && (
+          <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs sm:text-sm">
           <div>
@@ -124,9 +169,10 @@ const Signup = () => {
 
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition"
+            disabled={loading}
+            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Create account (Demo)
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
@@ -141,8 +187,8 @@ const Signup = () => {
         </p>
 
         <p className="mt-2 text-[10px] text-slate-600">
-          This auth flow is currently frontend-only. Later you can connect it to
-          your Express + MongoDB API and JWT/session system.
+          Your account will require email verification. An OTP will be generated
+          by the backend and, in development, is logged in the browser console.
         </p>
       </div>
     </div>

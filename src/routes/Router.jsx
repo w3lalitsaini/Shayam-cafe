@@ -15,13 +15,6 @@ import Contact from "../pages/Contact";
 import About from "../pages/About";
 import Error from "../pages/Error";
 
-/* Auth Pages */
-import Signup from "../pages/auth/Signup";
-import Signin from "../pages/auth/Signin";
-import VerifyEmail from "../pages/auth/VerifyEmail";
-import ForgetPassword from "../pages/auth/ForgetPassword";
-import ResetPassword from "../pages/auth/ResetPassword";
-
 /* Dashboard Pages */
 import DashboardHome from "../pages/dashboard/DashboardHome";
 import Orders from "../pages/dashboard/Orders";
@@ -29,22 +22,25 @@ import ManageMenu from "../pages/dashboard/ManageMenu";
 import AddMenuItem from "../pages/dashboard/AddMenuItem";
 import Bookings from "../pages/dashboard/Bookings";
 import Settings from "../pages/dashboard/Settings";
+import Users from "../pages/dashboard/Users";
 
 import AccountProfile from "../pages/account/AccountProfile";
 import AccountOrders from "../pages/account/AccountOrders";
 import AccountReservations from "../pages/account/AccountReservations";
 
-/* Admin */
-import Users from "../pages/admin/Users";
+/* Auth Pages */
+import Signup from "../pages/auth/Signup";
+import Signin from "../pages/auth/Signin";
+import VerifyEmail from "../pages/auth/VerifyEmail";
+import ForgetPassword from "../pages/auth/ForgetPassword";
+import ResetPassword from "../pages/auth/ResetPassword";
 
 /* Protection */
-// import ProtectedRoute from "../components/ProtectedRoute";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 const Router = () => {
   const routes = createBrowserRouter([
-    // ================================
     // PUBLIC WEBSITE ROUTES
-    // ================================
     {
       path: "/",
       element: <Layout />,
@@ -59,15 +55,13 @@ const Router = () => {
       ],
     },
 
-    // ================================
     // DASHBOARD (CAFE OWNER)
-    // ================================
     {
       path: "/dashboard",
       element: (
-        // <ProtectedRoute role="Admin">
-        <DashboardLayout />
-        // </ProtectedRoute>
+        <ProtectedRoute role="Admin">
+          <DashboardLayout />
+        </ProtectedRoute>
       ),
       children: [
         { index: true, element: <DashboardHome /> },
@@ -80,9 +74,7 @@ const Router = () => {
       ],
     },
 
-    // ================================
     // AUTH ROUTES
-    // ================================
     { path: "/auth/signup", element: <Signup /> },
     { path: "/auth/signin", element: <Signin /> },
     { path: "/auth/verify-email", element: <VerifyEmail /> },
@@ -93,9 +85,9 @@ const Router = () => {
     {
       path: "/account",
       element: (
-        // <ProtectedRoute>
-        <AccountLayout />
-        // </ProtectedRoute>
+        <ProtectedRoute>
+          <AccountLayout />
+        </ProtectedRoute>
       ),
       children: [
         { index: true, element: <AccountProfile /> },

@@ -1,43 +1,129 @@
-import React, { useState } from "react";
+// src/pages/dashboard/Orders.jsx
+import React, { useEffect, useState } from "react";
 
-const demoOrders = [
-  {
-    id: "BH-1023",
-    customer: "Rohan",
-    items: "Caramel Latte x2, Brownie",
-    total: 540,
-    type: "Takeaway",
-    status: "Preparing",
-    time: "10:12 AM",
-  },
-  {
-    id: "BH-1022",
-    customer: "Aditi",
-    items: "Masala Chai, Veg Sandwich",
-    total: 310,
-    type: "Dine-in",
-    status: "Completed",
-    time: "09:55 AM",
-  },
-  {
-    id: "BH-1021",
-    customer: "Neha",
-    items: "Cold Coffee",
-    total: 180,
-    type: "Takeaway",
-    status: "Pending",
-    time: "09:40 AM",
-  },
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const statusOptions = [
+  "All",
+  "Pending",
+  "Preparing",
+  "Ready",
+  "Completed",
+  "Cancelled",
 ];
-
-const statusOptions = ["All", "Pending", "Preparing", "Completed", "Cancelled"];
 
 const Orders = () => {
   const [statusFilter, setStatusFilter] = useState("All");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const filtered = demoOrders.filter(
-    (o) => statusFilter === "All" || o.status === statusFilter
-  );
+  // Fetch orders from API
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg("");
+
+      const token = localStorage.getItem("bh_token");
+      if (!token) {
+        setErrorMsg("You must be signed in as admin to view orders.");
+        setLoading(false);
+        return;
+      }
+
+      const query =
+        statusFilter === "All"
+          ? ""
+          : `?status=${encodeURIComponent(statusFilter)}`;
+
+      const res = await fetch(`${API_BASE}/orders${query}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json().catch(() => []);
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to load orders");
+      }
+
+      const mapped = data.map((o) => ({
+        id: o._id,
+        orderCode: `BH-${o._id.toString().slice(-6).toUpperCase()}`,
+        customer: o.customerName || o.user?.name || "Guest",
+        customerPhone: o.customerPhone || "",
+        customerAddress: o.customerAddress || "",
+        items:
+          (o.items || [])
+            .map((it) => `${it.title || "Item"} x${it.quantity || 1}`)
+            .join(", ") || "-",
+        total: o.totalAmount || 0,
+        type: o.source || "Online",
+        status: o.status,
+        createdAt: o.createdAt
+          ? new Date(o.createdAt).toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "",
+        createdDate: o.createdAt
+          ? new Date(o.createdAt).toLocaleDateString("en-IN")
+          : "",
+      }));
+
+      setOrders(mapped);
+    } catch (err) {
+      console.error("Get orders error:", err);
+      setErrorMsg(err.message || "Something went wrong fetching orders.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
+
+  // Change status
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem("bh_token");
+      if (!token) {
+        setErrorMsg("You must be signed in as admin to update orders.");
+        return;
+      }
+
+      setStatusLoadingId(orderId);
+      setErrorMsg("");
+
+      const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update order status");
+      }
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: data.status } : o))
+      );
+    } catch (err) {
+      console.error("Update order status error:", err);
+      setErrorMsg(err.message || "Could not update order status.");
+    } finally {
+      setStatusLoadingId(null);
+    }
+  };
 
   const badgeColor = (status) => {
     switch (status) {
@@ -45,6 +131,8 @@ const Orders = () => {
         return "bg-slate-800 text-slate-200";
       case "Preparing":
         return "bg-amber-400/15 text-amber-300";
+      case "Ready":
+        return "bg-sky-400/15 text-sky-300";
       case "Completed":
         return "bg-emerald-400/15 text-emerald-300";
       case "Cancelled":
@@ -53,6 +141,13 @@ const Orders = () => {
         return "bg-slate-800 text-slate-200";
     }
   };
+
+  const canMarkPreparing = (status) => status === "Pending";
+  const canMarkReady = (status) => status === "Preparing";
+  const canMarkCompleted = (status) =>
+    status === "Ready" || status === "Preparing";
+  const isTerminal = (status) =>
+    status === "Completed" || status === "Cancelled";
 
   return (
     <div>
@@ -65,7 +160,7 @@ const Orders = () => {
             Live & recent orders
           </h1>
           <p className="mt-1 text-xs text-slate-400">
-            Track and manage café orders. Data is static demo for now.
+            Track and manage café orders from all channels.
           </p>
         </div>
 
@@ -86,9 +181,15 @@ const Orders = () => {
         </div>
       </header>
 
+      {errorMsg && (
+        <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+          {errorMsg}
+        </div>
+      )}
+
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <div className="hidden grid-cols-[1.1fr_1.2fr_0.8fr_0.7fr_0.7fr] gap-3 border-b border-slate-800 pb-2 text-[11px] text-slate-400 md:grid">
-          <span>Order</span>
+        <div className="hidden grid-cols-[1.3fr_1.4fr_0.8fr_0.9fr_0.9fr] gap-3 border-b border-slate-800 pb-2 text-[11px] text-slate-400 md:grid">
+          <span>Order / Customer</span>
           <span>Items</span>
           <span>Type</span>
           <span>Status</span>
@@ -96,34 +197,98 @@ const Orders = () => {
         </div>
 
         <div className="mt-2 space-y-3 text-xs">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p className="text-[11px] text-slate-500">Loading orders...</p>
+          ) : orders.length === 0 ? (
             <p className="text-[11px] text-slate-500">
-              No orders found for this filter (demo data).
+              No orders found for this filter.
             </p>
           ) : (
-            filtered.map((o) => (
+            orders.map((o) => (
               <div
                 key={o.id}
-                className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 md:grid-cols-[1.1fr_1.2fr_0.8fr_0.7fr_0.7fr]"
+                className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 md:grid-cols-[1.3fr_1.4fr_0.8fr_0.9fr_0.9fr]"
               >
+                {/* Order + customer + address */}
                 <div>
-                  <p className="font-semibold text-slate-100">{o.id}</p>
+                  <p className="font-semibold text-slate-100">{o.orderCode}</p>
                   <p className="text-[11px] text-slate-400">
-                    {o.customer} · {o.time}
+                    {o.customer} · {o.createdDate} · {o.createdAt}
                   </p>
+
+                  {/* 👇 Phone + address */}
+                  {o.customerPhone && (
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      📞 {o.customerPhone}
+                    </p>
+                  )}
+                  {o.customerAddress && (
+                    <p className="mt-1 text-[11px] text-slate-500 line-clamp-2">
+                      📍 {o.customerAddress}
+                    </p>
+                  )}
                 </div>
-                <p className="text-[11px] text-slate-300">{o.items}</p>
+
+                {/* Items */}
+                <p className="text-[11px] text-slate-300 line-clamp-2">
+                  {o.items}
+                </p>
+
+                {/* Type */}
                 <p className="text-[11px] text-slate-400">{o.type}</p>
-                <div>
+
+                {/* Status + actions */}
+                <div className="flex flex-col gap-2">
                   <span
-                    className={`inline-flex rounded-full px-2 py-1 text-[10px] font-medium ${badgeColor(
+                    className={`inline-flex w-max rounded-full px-2 py-1 text-[10px] font-medium ${badgeColor(
                       o.status
                     )}`}
                   >
-                    {o.status}
+                    {statusLoadingId === o.id ? "Updating..." : o.status}
                   </span>
+
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      disabled={
+                        !canMarkPreparing(o.status) ||
+                        statusLoadingId === o.id ||
+                        isTerminal(o.status)
+                      }
+                      onClick={() => handleStatusChange(o.id, "Preparing")}
+                      className="rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-200 hover:border-amber-400 hover:text-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Preparing
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        !canMarkReady(o.status) ||
+                        statusLoadingId === o.id ||
+                        isTerminal(o.status)
+                      }
+                      onClick={() => handleStatusChange(o.id, "Ready")}
+                      className="rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-200 hover:border-sky-400 hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Ready
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        !canMarkCompleted(o.status) ||
+                        statusLoadingId === o.id ||
+                        isTerminal(o.status)
+                      }
+                      onClick={() => handleStatusChange(o.id, "Completed")}
+                      className="rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-200 hover:border-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Complete
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[11px] font-semibold text-amber-300">
+
+                {/* Total */}
+                <p className="self-center text-[11px] font-semibold text-amber-300">
                   ₹{o.total}
                 </p>
               </div>

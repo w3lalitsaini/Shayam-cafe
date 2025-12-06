@@ -1,58 +1,81 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
 
 const About = () => {
+  // Basic SEO: update page title when About mounts
+  useEffect(() => {
+    document.title =
+      "About Shree Shayam Cafe | Best Cafe Near CLC, Sikar, Rajasthan";
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-10">
         {/* Header */}
         <header className="border-b border-slate-800 pb-6">
           <p className="text-xs uppercase tracking-[0.18em] text-amber-300">
-            About Us
+            About Shree Shayam Cafe
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            The story behind Brew Haven Café.
+            A cozy, chai & snacks cafe near CLC, Sikar.
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
-            More than just coffee — Brew Haven Café was created as a cozy,
-            work-friendly space for people who love good conversations, deep
-            focus, and freshly brewed cups.
+            Shree Shayam Cafe is a friendly spot near CLC, Sikar where students,
+            coaching aspirants, and locals come together for hot chai, fresh
+            snacks and peaceful breaks between study sessions.
           </p>
         </header>
 
         {/* Intro section */}
-        <section className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)]">
-          <div className="space-y-4 text-sm text-slate-300">
+        <section
+          className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)]"
+          aria-labelledby="about-story-heading"
+        >
+          <article className="space-y-4 text-sm text-slate-300">
+            <h2
+              id="about-story-heading"
+              className="text-sm font-semibold text-slate-50 sm:text-base"
+            >
+              How Shree Shayam Cafe started
+            </h2>
             <p>
-              At <span className="text-amber-300">Brew Haven Café</span>, we
-              believe a great café is not just about the coffee in your cup, but
-              the feeling you carry when you leave. We wanted to build a place
-              where students, founders, remote workers, and friends can sit for
-              hours without feeling rushed.
+              At{" "}
+              <strong className="font-semibold text-amber-300">
+                Shree Shayam Cafe
+              </strong>
+              , the idea was simple: create a clean, comfortable cafe right next
+              to the coaching hustle of CLC, Sikar — a place where students and
+              working professionals can sit, relax, study, and recharge without
+              feeling rushed.
             </p>
             <p>
-              Every detail — from the lighting and seating, to our curated menu
-              and soft lo-fi playlists — is designed to help you focus, create,
-              and connect. Some guests come to grind on their laptops, others
-              come to read a book or just enjoy a quiet evening with someone
-              special.
+              The seating, lighting and layout are designed for{" "}
+              <span className="text-amber-300">real daily use</span>: long
+              self-study sessions, group discussions, casual meetings, or a
+              quick chai break between classes. Some guests drop in for 10
+              minutes, others spend hours here with books and notebooks open.
             </p>
             <p>
-              Our beans are sourced from Indian roasters and brewed with care by
-              baristas who actually love what they do. Add to that fresh bakes,
-              light snacks, and a calm ambience, and you get your new favorite
-              third place between home and work.
+              We serve hot chai, coffee, cold drinks and simple, tasty snacks
+              that feel home-like — not heavy, oily fast food. The goal is to
+              keep you fresh, not sleepy, so you can go back to your studies or
+              work with better focus.
             </p>
-          </div>
+            <p>
+              If you&apos;re searching for a calm{" "}
+              <strong>cafe near CLC Sikar</strong> to sit, study or hang out
+              with friends, Shree Shayam Cafe is built exactly for you.
+            </p>
+          </article>
 
           {/* Image / visual block */}
           <div className="flex items-center justify-center">
             <div className="relative w-full max-w-md">
               <div className="absolute -inset-1 rounded-3xl bg-amber-500/20 blur-2xl" />
               <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80 shadow-2xl">
-                {/* Replace src with your actual local about image */}
                 <img
                   src="/images/about/about.png"
-                  alt="Inside view of Brew Haven Café"
+                  alt="Inside view of Shree Shayam Cafe near CLC, Sikar with cozy seating and warm lighting."
                   className="h-64 w-full object-cover sm:h-80"
                   loading="lazy"
                 />
@@ -64,169 +87,206 @@ const About = () => {
         {/* Stats & highlights */}
         <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-slate-50 sm:text-base">
-            What makes us different
+            Why people choose Shree Shayam Cafe
           </h2>
           <p className="mt-1 text-xs text-slate-400">
-            A café built with creators, students, and remote workers in mind.
+            A cafe designed for students and locals around CLC, Sikar — peaceful
+            vibe, clean food and reliable service.
           </p>
 
           <div className="mt-5 grid gap-6 sm:grid-cols-3">
             <div>
               <p className="text-2xl font-semibold text-amber-300">2019</p>
               <p className="mt-1 text-xs font-medium text-slate-200">
-                Year we started
+                Serving near CLC since
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                From a small corner idea to a full café space in the heart of
-                the city.
+                From a small idea to a regular hangout place for CLC students
+                and Sikar locals.
               </p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-amber-300">20+</p>
+              <p className="text-2xl font-semibold text-amber-300">25+</p>
               <p className="mt-1 text-xs font-medium text-slate-200">
-                Coffee & tea options
+                Chai, coffee & snacks
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                From classic espresso to seasonal specials and comfort teas.
+                From classic chai and coffee to cold beverages and quick
+                snacks—perfect for breaks between classes.
               </p>
             </div>
             <div>
               <p className="text-2xl font-semibold text-amber-300">4.8★</p>
               <p className="mt-1 text-xs font-medium text-slate-200">
-                Average guest rating
+                Loved by students & locals
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                Loved for the ambience, quality brews, and respectful staff.
+                Guests appreciate the calm environment, friendly staff and
+                student-friendly pricing.
               </p>
             </div>
           </div>
         </section>
 
         {/* Values */}
-        <section className="mt-10">
-          <h2 className="text-sm font-semibold text-slate-50 sm:text-base">
-            Our values
+        <section className="mt-10" aria-labelledby="values-heading">
+          <h2
+            id="values-heading"
+            className="text-sm font-semibold text-slate-50 sm:text-base"
+          >
+            What we care about
           </h2>
           <p className="mt-1 text-xs text-slate-400">
-            The principles that guide how we run Brew Haven every single day.
+            These values guide how we run Shree Shayam Cafe every day.
           </p>
 
           <div className="mt-4 grid gap-6 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
               <h3 className="text-sm font-semibold text-amber-300">
-                People first
+                Students first
               </h3>
               <p className="mt-2 text-xs text-slate-400">
-                Every guest should feel welcome — whether you&apos;re here for
-                five minutes or five hours.
+                Most of our guests are CLC and nearby coaching students. We
+                respect your time, focus and budget.
               </p>
-            </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            </article>
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
               <h3 className="text-sm font-semibold text-amber-300">
-                Quality over shortcuts
+                Clean & consistent food
               </h3>
               <p className="mt-2 text-xs text-slate-400">
-                We don&apos;t compromise on beans, ingredients, or how your
-                drink is prepared.
+                We focus on simple, fresh and hygienic food instead of over
+                complicated menus. Taste and cleanliness stay consistent.
               </p>
-            </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
+            </article>
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
               <h3 className="text-sm font-semibold text-amber-300">
-                Calm, not chaos
+                Calm, not noisy
               </h3>
               <p className="mt-2 text-xs text-slate-400">
-                Brew Haven is intentionally designed to be a quiet, focused and
-                comfortable space.
+                No loud DJ, no chaos. Just a peaceful space where you can talk,
+                think or study without disturbance.
               </p>
-            </div>
+            </article>
           </div>
         </section>
 
         {/* Team / Founders */}
-        <section className="mt-10">
-          <h2 className="text-sm font-semibold text-slate-50 sm:text-base">
+        <section className="mt-10" aria-labelledby="team-heading">
+          <h2
+            id="team-heading"
+            className="text-sm font-semibold text-slate-50 sm:text-base"
+          >
             The team behind the counter
           </h2>
           <p className="mt-1 text-xs text-slate-400">
-            A small crew that cares about every cup and every guest.
+            A small crew making sure every cup and plate feels served with care.
           </p>
 
-          <div className="mt-4 grid gap-6 grid-cols-2 sm:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3">
             {/* Person 1 */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
               <img
                 src="/images/about/11.jpg"
-                alt="Aarya Sharma - Founder & Head Barista"
-                className="mx-auto mb-3 h-32 w-32 rounded-full object-cover border border-slate-700"
+                alt="Cafe owner and lead at Shree Shayam Cafe."
+                className="mx-auto mb-3 h-32 w-32 rounded-full border border-slate-700 object-cover"
                 loading="lazy"
               />
               <p className="text-sm font-semibold text-slate-100">
-                Aarya Sharma
+                Shree Shayam Team Lead
               </p>
               <p className="text-[11px] text-amber-300">
-                Founder & Head Barista
+                Owner &amp; Head Host
               </p>
               <p className="mt-2 text-[11px] text-slate-400">
-                Obsessed with espresso, latte art, and building spaces people
-                actually enjoy sitting in.
+                Welcomes guests, listens to feedback and keeps the cafe running
+                smoothly day to day.
               </p>
-            </div>
+            </article>
 
             {/* Person 2 */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
               <img
                 src="/images/about/12.jpg"
-                alt="Rahul Verma - Operations Manager"
-                className="mx-auto mb-3 h-32 w-32 rounded-full object-cover border border-slate-700"
+                alt="Staff member managing daily operations at Shree Shayam Cafe."
+                className="mx-auto mb-3 h-32 w-32 rounded-full border border-slate-700 object-cover"
                 loading="lazy"
               />
               <p className="text-sm font-semibold text-slate-100">
-                Rahul Verma
+                Operations & Service
               </p>
               <p className="text-[11px] text-amber-300">
-                Operations & Experience
+                Orders &amp; Guest Experience
               </p>
               <p className="mt-2 text-[11px] text-slate-400">
-                Makes sure your orders are smooth, seats are comfortable, and
-                the music is always perfect.
+                Makes sure orders are on time, tables are clean, and guests feel
+                comfortable sitting longer.
               </p>
-            </div>
+            </article>
 
             {/* Person 3 */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
+            <article className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-center">
               <img
                 src="/images/about/13.JPG"
-                alt="Brew Haven Café team"
-                className="mx-auto mb-3 h-32 w-32 rounded-full object-cover border border-slate-700"
+                alt="Cafe team at Shree Shayam Cafe in Sikar."
+                className="mx-auto mb-3 h-32 w-32 rounded-full border border-slate-700 object-cover"
                 loading="lazy"
               />
               <p className="text-sm font-semibold text-slate-100">
-                Team Brew Haven
+                Shree Shayam Cafe Team
               </p>
               <p className="text-[11px] text-amber-300">
-                Baristas & kitchen crew
+                Kitchen &amp; counter crew
               </p>
               <p className="mt-2 text-[11px] text-slate-400">
-                The people steaming milk, pulling shots, plating desserts, and
-                smiling behind the counter.
+                The people preparing chai, snacks and greeting you with a smile
+                every time you walk in.
               </p>
-            </div>
+            </article>
           </div>
         </section>
 
-        {/* Call to action */}
+        {/* Call to action + internal links */}
         <section className="mt-10 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-slate-50 sm:text-base">
-            Come say hi in person ☕
+            Visit Shree Shayam Cafe near CLC, Sikar ☕
           </h2>
           <p className="mt-2 text-xs text-slate-300">
             We&apos;re open every day from{" "}
-            <span className="text-amber-300">8:00 AM to 11:00 PM</span>. Drop by
-            for a quick latte, a long work session, or just to explore our menu.
-            Your next favourite corner might be waiting here.
+            <span className="text-amber-300">8:00 AM to 11:00 PM</span>. Drop in
+            before or after your coaching, or bring your friends for an evening
+            chai break.
           </p>
+          <div className="mt-3 space-y-1 text-xs text-slate-300">
+            <p>
+              <span className="font-semibold text-amber-300">Address:</span>{" "}
+              Near CLC, Sikar, Rajasthan
+            </p>
+            <p>
+              <span className="font-semibold text-amber-300">Contact:</span>{" "}
+              9887374746 · sainilalit275@gmail.com
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold text-amber-300">
+                Plan your first visit:
+              </span>{" "}
+              <Link
+                to="/menu"
+                className="underline decoration-amber-400/70 underline-offset-2 hover:text-amber-300"
+              >
+                Explore the full menu
+              </Link>{" "}
+              ·{" "}
+              <Link
+                to="/order"
+                className="underline decoration-amber-400/70 underline-offset-2 hover:text-amber-300"
+              >
+                Order online for takeaway
+              </Link>
+            </p>
+          </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 };

@@ -1,50 +1,104 @@
 import React, { useEffect, useState } from "react";
 
-const demoOrders = [
-  {
-    id: "UO-001",
-    userId: "u1",
-    items: "Caramel Latte x2, Brownie",
-    total: 540,
-    status: "Completed",
-    date: "2025-12-01",
-    time: "10:12 AM",
-  },
-  {
-    id: "UO-002",
-    userId: "u1",
-    items: "Cold Brew",
-    total: 180,
-    status: "Preparing",
-    date: "2025-12-03",
-    time: "09:45 AM",
-  },
-];
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const AccountOrders = () => {
-  const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // map status → badge tailwind classes
+  const badgeColor = (status) => {
+    switch (status) {
+      case "Completed":
+        return "bg-emerald-400/15 text-emerald-300";
+      case "Ready":
+        return "bg-emerald-400/15 text-emerald-300";
+      case "Preparing":
+        return "bg-amber-400/15 text-amber-300";
+      case "Pending":
+        return "bg-slate-700 text-slate-100";
+      case "Cancelled":
+        return "bg-rose-400/15 text-rose-300";
+      default:
+        return "bg-slate-800 text-slate-200";
+    }
+  };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("bh_user");
-      if (stored) {
-        const u = JSON.parse(stored);
-        setUser(u);
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg("");
 
-        // Filter demo orders by userId, email, etc.
-        const userOrders = demoOrders.filter((o) => o.userId === u.id);
-        setOrders(userOrders);
+        const token = localStorage.getItem("bh_token");
+        if (!token) {
+          setErrorMsg("You must be signed in to view your orders.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/account/orders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json().catch(() => []);
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to load your orders.");
+        }
+
+        // data is array of Order docs from backend
+        // Shape: { _id, items[], totalAmount, status, paymentStatus, createdAt, ... }
+        setOrders(
+          (Array.isArray(data) ? data : []).map((o) => ({
+            id: o._id,
+            items: o.items || [],
+            totalAmount: o.totalAmount || 0,
+            status: o.status || "Pending",
+            paymentStatus: o.paymentStatus || "Pending",
+            createdAt: o.createdAt,
+            notes: o.notes,
+            source: o.source || "Online",
+          }))
+        );
+      } catch (err) {
+        console.error("Account orders error:", err);
+        setErrorMsg(err.message || "Something went wrong loading your orders.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error reading user / orders", err);
-    }
+    };
+
+    fetchOrders();
   }, []);
 
-  const badgeColor = (status) => {
-    if (status === "Completed") return "bg-emerald-400/15 text-emerald-300";
-    if (status === "Preparing") return "bg-amber-400/15 text-amber-300";
-    return "bg-slate-800 text-slate-200";
+  const formatDateTime = (iso) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    const date = d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const time = d.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${date} · ${time}`;
+  };
+
+  const buildItemsSummary = (items) => {
+    if (!items || items.length === 0) return "No items";
+    return items
+      .map((it) => {
+        const title = it.title || "Item";
+        const qty = it.quantity || 1;
+        return `${title} x${qty}`;
+      })
+      .join(", ");
   };
 
   return (
@@ -53,11 +107,19 @@ const AccountOrders = () => {
         My Orders
       </h1>
       <p className="mt-1 text-[11px] text-slate-400">
-        Orders you&apos;ve placed with Brew Haven Café (demo data).
+        Orders you&apos;ve placed with Brew Haven Café.
       </p>
 
+      {errorMsg && (
+        <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+          {errorMsg}
+        </div>
+      )}
+
       <div className="mt-4 space-y-3 text-xs">
-        {orders.length === 0 ? (
+        {loading ? (
+          <p className="text-[11px] text-slate-500">Loading your orders...</p>
+        ) : orders.length === 0 ? (
           <p className="text-[11px] text-slate-500">
             You don&apos;t have any orders yet.
           </p>
@@ -69,9 +131,14 @@ const AccountOrders = () => {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-100">{o.id}</p>
+                  <p className="text-sm font-semibold text-slate-100">
+                    Order #{o.id.slice(-6)}
+                  </p>
                   <p className="text-[11px] text-slate-400">
-                    {o.date} · {o.time}
+                    {formatDateTime(o.createdAt)}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    Source: {o.source} · Payment: {o.paymentStatus}
                   </p>
                 </div>
                 <span
@@ -82,9 +149,19 @@ const AccountOrders = () => {
                   {o.status}
                 </span>
               </div>
-              <p className="mt-2 text-[11px] text-slate-300">{o.items}</p>
+
+              <p className="mt-2 text-[11px] text-slate-300">
+                {buildItemsSummary(o.items)}
+              </p>
+
+              {o.notes && (
+                <p className="mt-1 text-[10px] text-slate-500">
+                  Note: {o.notes}
+                </p>
+              )}
+
               <p className="mt-1 text-[11px] font-semibold text-amber-300">
-                ₹{o.total}
+                ₹{o.totalAmount}
               </p>
             </div>
           ))
@@ -92,8 +169,8 @@ const AccountOrders = () => {
       </div>
 
       <p className="mt-3 text-[10px] text-slate-600">
-        Later, connect this to an API like <code>GET /api/my/orders</code> using
-        the logged-in user&apos;s token.
+        This page uses <code>GET /api/account/orders</code> and shows only
+        orders linked to your account.
       </p>
     </div>
   );

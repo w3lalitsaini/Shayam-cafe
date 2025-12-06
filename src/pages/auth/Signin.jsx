@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const Signin = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -8,6 +10,8 @@ const Signin = () => {
     phone: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -16,36 +20,63 @@ const Signin = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
 
     const { email, phone, password } = form;
 
     if (!email && !phone) {
-      window.alert("Please enter your email or mobile number.");
+      setErrorMsg("Please enter your email or mobile number.");
       return;
     }
 
     if (!password) {
-      window.alert("Please enter your password.");
+      setErrorMsg("Please enter your password.");
       return;
     }
 
-    // ✅ DEMO LOGIN: save user in localStorage
-    const user = {
-      id: "u1",
-      name: "Demo User",
-      email: email || "user@example.com",
-      phone: phone || "9999999999",
-      role: "User", // or "Owner" / "Admin" depending on what you want
-    };
+    if (!email && phone && !/^\d{10}$/.test(phone)) {
+      setErrorMsg("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
-    localStorage.setItem("bh_user", JSON.stringify(user));
+    try {
+      setLoading(true);
 
-    window.alert(`Signed in as ${user.name} (${user.role})`);
+      const res = await fetch(`${API_BASE}/auth/signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email || undefined,
+          phone: phone || undefined,
+          password,
+        }),
+      });
 
-    // Go back to previous page or home
-    navigate("/", { replace: true });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Sign in failed");
+      }
+
+      if (data.user && data.token) {
+        localStorage.setItem("bh_user", JSON.stringify(data.user));
+        localStorage.setItem("bh_token", data.token);
+      }
+
+      // Simple role-based redirect
+      if (data.user?.role === "Admin") {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    } catch (err) {
+      console.error("Signin error:", err);
+      setErrorMsg(err.message || "Unable to sign in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,6 +91,12 @@ const Signin = () => {
             Sign in to manage your orders and reservations.
           </p>
         </div>
+
+        {errorMsg && (
+          <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs sm:text-sm">
           <div>
@@ -124,9 +161,10 @@ const Signin = () => {
 
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition"
+            disabled={loading}
+            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Sign in (Demo)
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 

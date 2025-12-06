@@ -1,27 +1,64 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const DashboardLayout = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("bh_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        // optional: if no user, kick out
-        // navigate("/auth/signin");
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem("bh_token");
+        if (!token) {
+          navigate("/auth/signin");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to fetch user");
+        }
+
+        setUser(data.user || null);
+
+        // Optional: enforce only Admin can be here
+        if (data.user?.role !== "Admin") {
+          setErrorMsg("You are not authorized to access this dashboard.");
+          setTimeout(() => {
+            navigate("/", { replace: true });
+          }, 1500);
+        }
+      } catch (err) {
+        console.error("Fetch /auth/me error:", err);
+        setErrorMsg(err.message || "Session expired. Please sign in again.");
+        localStorage.removeItem("bh_token");
+        localStorage.removeItem("bh_user");
+        setTimeout(() => {
+          navigate("/auth/signin", { replace: true });
+        }, 1200);
+      } finally {
+        setLoadingUser(false);
       }
-    } catch (err) {
-      console.error("Failed to parse bh_user", err);
-    }
+    };
+
+    fetchMe();
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem("bh_user");
+    localStorage.removeItem("bh_token");
     navigate("/auth/signin");
   };
 
@@ -39,6 +76,29 @@ const DashboardLayout = () => {
   const active = "bg-amber-400/10 text-amber-300 border border-amber-400/50";
   const inactive =
     "text-slate-300 border border-transparent hover:border-slate-700 hover:bg-slate-900";
+
+  // While loading user data, show a simple loader
+  if (loadingUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-xs">
+          Loading dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  // If not admin or error, show message (redirects handled in useEffect)
+  if (errorMsg && (!user || user.role !== "Admin")) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-100 px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-center text-xs">
+          <p className="text-rose-300 mb-2 font-semibold">Access denied</p>
+          <p className="text-slate-400">{errorMsg}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100">
@@ -75,7 +135,9 @@ const DashboardLayout = () => {
           {user && (
             <>
               <p>{user.name || "Admin User"}</p>
-              <p className="text-slate-600">{user.email || user.phone}</p>
+              <p className="text-slate-600">
+                {user.email || user.phone || "—"}
+              </p>
             </>
           )}
           <button

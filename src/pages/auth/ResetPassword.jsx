@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
@@ -8,6 +10,9 @@ const ResetPassword = () => {
     password: "",
     confirmPassword: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -16,24 +21,57 @@ const ResetPassword = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+    setInfoMsg("");
 
     if (!form.password || !form.confirmPassword) {
-      window.alert("Please fill both password fields.");
+      setErrorMsg("Please fill both password fields.");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setErrorMsg("Password should be at least 6 characters.");
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      window.alert("Passwords do not match.");
+      setErrorMsg("Passwords do not match.");
       return;
     }
 
-    // Demo only
-    window.alert(
-      `Password reset (demo)\n\nToken: ${token}\nNew password set successfully.`
-    );
-    navigate("/auth/signin");
+    if (!token) {
+      setErrorMsg("Invalid reset link (no token found).");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/auth/reset-password/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: form.password }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to reset password");
+      }
+
+      setInfoMsg("Password reset successful. Redirecting to sign in...");
+
+      setTimeout(() => {
+        navigate("/auth/signin", { replace: true });
+      }, 1200);
+    } catch (err) {
+      console.error("Reset password error:", err);
+      setErrorMsg(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,10 +83,22 @@ const ResetPassword = () => {
           </div>
           <h1 className="text-lg font-semibold">Set a new password</h1>
           <p className="mt-1 text-xs text-slate-400">
-            Enter your new password below. This is a demo flow, token is not
-            validated yet.
+            Enter your new password below. The reset link will be validated with
+            our server.
           </p>
         </div>
+
+        {errorMsg && (
+          <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+            {errorMsg}
+          </div>
+        )}
+
+        {infoMsg && (
+          <div className="mb-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-100">
+            {infoMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3 text-xs sm:text-sm">
           <div>
@@ -78,9 +128,10 @@ const ResetPassword = () => {
 
           <button
             type="submit"
-            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition"
+            disabled={loading}
+            className="mt-2 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 hover:bg-amber-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Reset password (Demo)
+            {loading ? "Resetting..." : "Reset password"}
           </button>
         </form>
 

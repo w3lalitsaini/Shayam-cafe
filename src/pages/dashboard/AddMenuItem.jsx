@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const AddMenuItem = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -8,11 +10,15 @@ const AddMenuItem = () => {
     category: "",
     price: "",
     description: "",
-    image: "/images/menu/placeholder.jpg",
+    imageUrl: "", // fallback/manual URL (optional)
     isAvailable: true,
     tag: "",
     badge: "",
   });
+  const [imageFile, setImageFile] = useState(null); // 👈 local file
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -22,25 +28,78 @@ const AddMenuItem = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    setImageFile(file || null);
+
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+    } else {
+      setPreview(null);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
 
     if (!form.title || !form.category || !form.price) {
-      window.alert("Title, category and price are required.");
+      setErrorMsg("Title, category and price are required.");
       return;
     }
 
-    // For now this is just demo – in real app you'd POST to your API.
-    const payload = {
-      ...form,
-      price: Number(form.price),
-    };
+    const token = localStorage.getItem("bh_token");
+    if (!token) {
+      setErrorMsg("You must be signed in as admin to add menu items.");
+      return;
+    }
 
-    console.log("New menu item (demo only):", payload);
-    window.alert("Menu item created (demo only). Check console payload.");
+    try {
+      setLoading(true);
 
-    // Redirect admin back to menu management page
-    navigate("/dashboard/menu");
+      // Use FormData for file + fields
+      const fd = new FormData();
+      fd.append("title", form.title);
+      fd.append("category", form.category);
+      fd.append("price", form.price);
+      fd.append("description", form.description || "");
+      fd.append("tag", form.tag || "");
+      fd.append("badge", form.badge || "");
+      fd.append("isAvailable", form.isAvailable ? "true" : "false");
+
+      // If file selected → send file; else if manual URL provided → send that
+      if (imageFile) {
+        fd.append("image", imageFile); // 👈 field name must match multer
+      } else if (form.imageUrl) {
+        fd.append("imageUrl", form.imageUrl);
+      }
+
+      const res = await fetch(`${API_BASE}/menu`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // ❌ don't set Content-Type manually, browser sets boundary for FormData
+        },
+        body: fd,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to create menu item");
+      }
+
+      // Optional: show toast
+      // window.alert("Menu item created successfully");
+
+      navigate("/dashboard/menu");
+    } catch (err) {
+      console.error("Create menu item error:", err);
+      setErrorMsg(err.message || "Something went wrong, please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -57,10 +116,16 @@ const AddMenuItem = () => {
           Add new menu item
         </h1>
         <p className="mt-1 text-xs text-slate-400">
-          Create a new drink or snack for your café menu. This page is currently
-          frontend-only; later you&apos;ll connect it to your backend API.
+          Create a new drink or snack for your café menu. Images are uploaded to
+          Cloudinary via your backend.
         </p>
       </header>
+
+      {errorMsg && (
+        <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+          {errorMsg}
+        </div>
+      )}
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-xs sm:text-sm">
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
@@ -131,22 +196,55 @@ const AddMenuItem = () => {
             />
           </div>
 
-          {/* Image */}
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-slate-300">Image path</label>
-            <input
-              type="text"
-              name="image"
-              value={form.image}
-              onChange={handleChange}
-              placeholder="/images/menu/latte.jpg"
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs outline-none placeholder:text-slate-500 focus:border-amber-400"
-            />
-            <p className="mt-1 text-[10px] text-slate-500">
-              Use local image paths for now. Later you can replace this with
-              Cloudinary URLs from your backend.
-            </p>
+          {/* Image file + optional URL */}
+          <div className="md:col-span-2 grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <div>
+              <label className="mb-1 block text-slate-300">
+                Upload image (Cloudinary)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1 file:text-xs file:text-slate-100 focus:border-amber-400"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">
+                Choose an image file to upload. It will be stored on Cloudinary.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-slate-300">
+                Or use existing image URL (optional)
+              </label>
+              <input
+                type="text"
+                name="imageUrl"
+                value={form.imageUrl}
+                onChange={handleChange}
+                placeholder="Cloudinary URL or /images/menu/latte.jpg"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs outline-none placeholder:text-slate-500 focus:border-amber-400"
+              />
+              <p className="mt-1 text-[10px] text-slate-500">
+                If no file is selected but a URL is provided, the URL will be
+                saved directly.
+              </p>
+            </div>
           </div>
+
+          {/* Preview */}
+          {preview && (
+            <div className="md:col-span-2">
+              <p className="mb-1 text-[11px] text-slate-400">Preview</p>
+              <div className="h-32 w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div className="md:col-span-2">
@@ -184,9 +282,10 @@ const AddMenuItem = () => {
               </button>
               <button
                 type="submit"
-                className="rounded-full bg-amber-400 px-4 py-2 text-[11px] font-semibold text-slate-950 hover:bg-amber-300 transition"
+                disabled={loading}
+                className="rounded-full bg-amber-400 px-4 py-2 text-[11px] font-semibold text-slate-950 hover:bg-amber-300 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Create item
+                {loading ? "Creating..." : "Create item"}
               </button>
             </div>
           </div>
@@ -194,9 +293,9 @@ const AddMenuItem = () => {
       </section>
 
       <p className="mt-3 text-[11px] text-slate-500">
-        Later, connect this page to an API endpoint like{" "}
-        <code>POST /api/menu</code> and then refresh your admin menu list from{" "}
-        <code>GET /api/menu</code>.
+        This form now sends <code>multipart/form-data</code> to{" "}
+        <code>POST /api/menu</code>. Image files are uploaded to Cloudinary on
+        the server.
       </p>
     </div>
   );

@@ -1,20 +1,82 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Card from "../components/Card";
-import menuItems from "../data/menuItems.json";
+import { useCart } from "../context/CartContext";
+import { useNavigate } from "react-router-dom";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Menu = () => {
-  // Build categories dynamically from JSON
+  const [menuItems, setMenuItems] = useState([]);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const { addItem } = useCart();
+  const navigate = useNavigate();
+
+  // SEO: title for menu page
+  useEffect(() => {
+    document.title =
+      "Menu – Shree Shayam Cafe | Coffee & Snacks Near CLC, Sikar";
+  }, []);
+
+  // ===== FETCH MENU FROM BACKEND =====
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg("");
+
+        const res = await fetch(`${API_BASE}/menu`);
+        const data = await res.json().catch(() => []);
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to load menu items.");
+        }
+
+        // Normalize image field
+        const normalized = (Array.isArray(data) ? data : []).map((item) => ({
+          ...item,
+          image: item.imageUrl || item.image || "/images/menu/placeholder.jpg",
+        }));
+
+        setMenuItems(normalized);
+      } catch (err) {
+        console.error("Menu page error:", err);
+        setErrorMsg(err.message || "Unable to load menu right now.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenu();
+  }, []);
+
+  const handleAddToCart = (item) => {
+    // check if user is logged in
+    const storedUser = localStorage.getItem("bh_user");
+    if (!storedUser) {
+      // redirect to login with redirect back to menu
+      navigate("/auth/signin?redirect=/menu");
+      return;
+    }
+
+    // user logged in → add to cart
+    addItem(item);
+  };
+  // Only show available items to customers
+  const publicItems = menuItems.filter((i) => i.isAvailable !== false);
+
+  // Build categories dynamically from API data
   const dynamicCategories = Array.from(
-    new Set(menuItems.map((item) => item.category))
+    new Set(publicItems.map((item) => item.category).filter(Boolean))
   );
   const categories = ["All", ...dynamicCategories];
 
-  const [activeCategory, setActiveCategory] = useState("All");
-
   const filteredItems =
     activeCategory === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === activeCategory);
+      ? publicItems
+      : publicItems.filter((item) => item.category === activeCategory);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -23,14 +85,15 @@ const Menu = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-amber-300">
-              Our Menu
+              Shree Shayam Cafe · Menu
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Crafted drinks & bites for every mood.
+              Coffee, chai & snacks near CLC, Sikar.
             </h1>
             <p className="mt-2 max-w-xl text-sm text-slate-400">
-              Explore our selection of freshly brewed coffee, teas, cold
-              beverages, and snacks. All prices are inclusive of taxes.
+              Explore our full menu of hot and cold coffees, chai, quick bites
+              and café snacks. All prices are inclusive of taxes and perfect for
+              students and locals around CLC, Sikar.
             </p>
           </div>
 
@@ -52,12 +115,21 @@ const Menu = () => {
           </div>
         </div>
 
+        {/* Error state */}
+        {errorMsg && (
+          <p className="mt-4 text-[11px] text-rose-300">{errorMsg}</p>
+        )}
+
         {/* Menu Grid */}
         <div className="mt-8 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-3">
-          {filteredItems.length > 0 ? (
+          {loading ? (
+            <p className="col-span-full text-sm text-slate-400">
+              Loading menu items...
+            </p>
+          ) : filteredItems.length > 0 ? (
             filteredItems.map((item) => (
               <Card
-                key={item.id}
+                key={item._id}
                 title={item.title}
                 description={item.description}
                 price={`₹${item.price}`}
@@ -65,23 +137,17 @@ const Menu = () => {
                 badge={item.badge}
                 isAvailable={item.isAvailable}
                 image={item.image}
+                onAdd={() => handleAddToCart(item)}
               />
             ))
           ) : (
-            <p className="text-sm text-slate-400">
+            <p className="col-span-full text-sm text-slate-400">
               No items available in this category right now.
             </p>
           )}
         </div>
 
-        {/* Note */}
-        <p className="mt-6 text-[11px] text-slate-500">
-          Images are currently served from{" "}
-          <span className="text-amber-300">/public/images/menu</span>. Later you
-          can replace the <code>image</code> field in{" "}
-          <span className="text-amber-300">menuItems.json</span> with Cloudinary
-          URLs from your backend API.
-        </p>
+        
       </div>
     </div>
   );
