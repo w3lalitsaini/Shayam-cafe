@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -11,6 +12,8 @@ const Order = () => {
     clearCart,
     totals,
   } = useCart();
+
+  const navigate = useNavigate();
 
   const [orderType, setOrderType] = useState("Takeaway");
   const [customerName, setCustomerName] = useState("");
@@ -29,6 +32,25 @@ const Order = () => {
       "Order Online | Shree Shayam Cafe – Near CLC, Sikar, Rajasthan";
   }, []);
 
+  // Prefill from logged-in user & enforce auth
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("bh_user");
+      if (!storedUser) {
+        setErrorMsg("Please sign in to place an order at Shree Shayam Cafe.");
+        // optional redirect with return URL
+        navigate("/auth/signin?redirect=/order");
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (user.name) setCustomerName(user.name);
+      if (user.phone) setCustomerPhone(user.phone);
+    } catch (err) {
+      console.error("Error reading bh_user:", err);
+    }
+  }, [navigate]);
+
   const formatCurrency = (value) =>
     `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -42,7 +64,7 @@ const Order = () => {
       return;
     }
 
-    if (!customerName || !customerPhone) {
+    if (!customerName.trim() || !customerPhone.trim()) {
       setErrorMsg("Please fill your name and phone number.");
       return;
     }
@@ -52,20 +74,36 @@ const Order = () => {
       return;
     }
 
+    // Make sure user is logged in & we have userId
+    let userId = null;
+    let token = null;
+    try {
+      const storedUser = localStorage.getItem("bh_user");
+      const storedToken = localStorage.getItem("bh_token");
+
+      if (!storedUser || !storedToken) {
+        setErrorMsg("You must be signed in to place an order.");
+        navigate("/auth/signin?redirect=/order");
+        return;
+      }
+
+      const u = JSON.parse(storedUser);
+      userId = u.id || u._id || null;
+      token = storedToken;
+      if (!userId) {
+        setErrorMsg("Unable to detect your account. Please sign in again.");
+        navigate("/auth/signin?redirect=/order");
+        return;
+      }
+    } catch (err) {
+      console.error("Auth parse error:", err);
+      setErrorMsg("Auth error. Please sign in again.");
+      navigate("/auth/signin?redirect=/order");
+      return;
+    }
+
     try {
       setLoading(true);
-
-      // If user is logged in, send userId
-      let userId = null;
-      try {
-        const storedUser = localStorage.getItem("bh_user");
-        if (storedUser) {
-          const u = JSON.parse(storedUser);
-          userId = u.id || u._id || null;
-        }
-      } catch {
-        /* ignore */
-      }
 
       const payload = {
         userId,
@@ -87,6 +125,7 @@ const Order = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // matches protected order route if you enable protect()
         },
         body: JSON.stringify(payload),
       });
@@ -99,8 +138,6 @@ const Order = () => {
 
       // success
       clearCart();
-      setCustomerName("");
-      setCustomerPhone("");
       setCustomerAddress("");
       setNote("");
       setOrderType("Takeaway");
@@ -125,7 +162,7 @@ const Order = () => {
               Shree Shayam Cafe · Order Online
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Fresh food & chai, ready when you are.
+              Fresh food &amp; chai, ready when you are.
             </h1>
             <p className="mt-2 max-w-xl text-sm text-slate-400">
               Review your cart and confirm your order for takeaway or dine-in at
@@ -180,7 +217,7 @@ const Order = () => {
               Your Cart
             </h2>
 
-            <div className="mt-3 space-y-3 max-h-80 overflow-y-auto">
+            <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
               {cartItems.length === 0 ? (
                 <p className="text-[11px] text-slate-500">
                   Your cart is empty. Go to the menu and add some items.
@@ -312,7 +349,7 @@ const Order = () => {
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="E.g. less sugar, extra hot, ring after reaching gate, etc."
+                  placeholder="E.g. less masala, extra cheese, call after reaching gate, etc."
                   rows={3}
                   className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs outline-none placeholder:text-slate-500 focus:border-amber-400"
                 />
@@ -321,7 +358,7 @@ const Order = () => {
               <button
                 type="submit"
                 disabled={loading || cartItems.length === 0}
-                className="mt-1 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs font-semibold text-slate-950 hover:bg-amber-300 transition disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-1 w-full rounded-full bg-amber-400 px-4 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? "Placing order..." : "Place Order"}
               </button>

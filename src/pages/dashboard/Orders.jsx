@@ -1,5 +1,5 @@
 // src/pages/dashboard/Orders.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -19,8 +19,8 @@ const Orders = () => {
   const [statusLoadingId, setStatusLoadingId] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Fetch orders from API
-  const fetchOrders = async () => {
+  // =============== FETCH ORDERS (ADMIN ONLY) ===============
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMsg("");
@@ -32,6 +32,7 @@ const Orders = () => {
         return;
       }
 
+      // optional status filter via query -> GET /api/orders?status=Preparing
       const query =
         statusFilter === "All"
           ? ""
@@ -49,9 +50,10 @@ const Orders = () => {
         throw new Error(data.message || "Failed to load orders");
       }
 
-      const mapped = data.map((o) => ({
+      const mapped = (Array.isArray(data) ? data : []).map((o) => ({
         id: o._id,
-        orderCode: `BH-${o._id.toString().slice(-6).toUpperCase()}`,
+        // Updated code prefix for Shree Shayam Café
+        orderCode: `SS-${o._id.toString().slice(-6).toUpperCase()}`,
         customer: o.customerName || o.user?.name || "Guest",
         customerPhone: o.customerPhone || "",
         customerAddress: o.customerAddress || "",
@@ -60,8 +62,9 @@ const Orders = () => {
             .map((it) => `${it.title || "Item"} x${it.quantity || 1}`)
             .join(", ") || "-",
         total: o.totalAmount || 0,
-        type: o.source || "Online",
-        status: o.status,
+        type: o.source || "Online", // "Online" | "In-store"
+        status: o.status || "Pending",
+        paymentStatus: o.paymentStatus || "Pending",
         createdAt: o.createdAt
           ? new Date(o.createdAt).toLocaleTimeString("en-IN", {
               hour: "2-digit",
@@ -80,14 +83,13 @@ const Orders = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, [fetchOrders]);
 
-  // Change status
+  // =============== STATUS UPDATE: PATCH /api/orders/:id/status ===============
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem("bh_token");
@@ -114,8 +116,11 @@ const Orders = () => {
         throw new Error(data.message || "Failed to update order status");
       }
 
+      // data is the updated order from backend → use data.status
       setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: data.status } : o))
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: data.status || newStatus } : o
+        )
       );
     } catch (err) {
       console.error("Update order status error:", err);
@@ -142,6 +147,18 @@ const Orders = () => {
     }
   };
 
+  const paymentBadgeColor = (status) => {
+    switch (status) {
+      case "Paid":
+        return "bg-emerald-500/15 text-emerald-300";
+      case "Failed":
+        return "bg-rose-500/15 text-rose-300";
+      case "Pending":
+      default:
+        return "bg-slate-700/60 text-slate-200";
+    }
+  };
+
   const canMarkPreparing = (status) => status === "Pending";
   const canMarkReady = (status) => status === "Preparing";
   const canMarkCompleted = (status) =>
@@ -157,10 +174,10 @@ const Orders = () => {
             Orders
           </p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-            Live & recent orders
+            Live &amp; recent orders
           </h1>
           <p className="mt-1 text-xs text-slate-400">
-            Track and manage café orders from all channels.
+            Track and manage Shree Shayam Café orders from all channels.
           </p>
         </div>
 
@@ -188,7 +205,8 @@ const Orders = () => {
       )}
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-        <div className="hidden grid-cols-[1.3fr_1.4fr_0.8fr_0.9fr_0.9fr] gap-3 border-b border-slate-800 pb-2 text-[11px] text-slate-400 md:grid">
+        {/* Header row (desktop) */}
+        <div className="hidden grid-cols-[1.4fr_1.4fr_0.8fr_0.9fr_0.9fr] gap-3 border-b border-slate-800 pb-2 text-[11px] text-slate-400 md:grid">
           <span>Order / Customer</span>
           <span>Items</span>
           <span>Type</span>
@@ -207,7 +225,7 @@ const Orders = () => {
             orders.map((o) => (
               <div
                 key={o.id}
-                className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 md:grid-cols-[1.3fr_1.4fr_0.8fr_0.9fr_0.9fr]"
+                className="grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 md:grid-cols-[1.4fr_1.4fr_0.8fr_0.9fr_0.9fr]"
               >
                 {/* Order + customer + address */}
                 <div>
@@ -216,7 +234,6 @@ const Orders = () => {
                     {o.customer} · {o.createdDate} · {o.createdAt}
                   </p>
 
-                  {/* 👇 Phone + address */}
                   {o.customerPhone && (
                     <p className="mt-1 text-[11px] text-slate-400">
                       📞 {o.customerPhone}
@@ -235,7 +252,16 @@ const Orders = () => {
                 </p>
 
                 {/* Type */}
-                <p className="text-[11px] text-slate-400">{o.type}</p>
+                <div className="flex flex-col gap-1 text-[11px] text-slate-400">
+                  <span>{o.type}</span>
+                  <span
+                    className={`inline-flex w-max rounded-full px-2 py-0.5 text-[10px] ${paymentBadgeColor(
+                      o.paymentStatus
+                    )}`}
+                  >
+                    Payment: {o.paymentStatus}
+                  </span>
+                </div>
 
                 {/* Status + actions */}
                 <div className="flex flex-col gap-2">
@@ -288,9 +314,14 @@ const Orders = () => {
                 </div>
 
                 {/* Total */}
-                <p className="self-center text-[11px] font-semibold text-amber-300">
-                  ₹{o.total}
-                </p>
+                <div className="flex flex-col items-start justify-center md:items-end">
+                  <p className="text-[11px] font-semibold text-amber-300">
+                    ₹{o.total}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    Inc. taxes (if applied)
+                  </p>
+                </div>
               </div>
             ))
           )}
